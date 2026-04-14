@@ -7,29 +7,30 @@ use axum::{
 };
 
 use request::{Request, WebServiceMethod};
+use tracing::{Level, event};
 // use tracing::{Level, event, instrument};
 
 
 // #[instrument]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
+    // Load environment variables from .env file
     dotenv::dotenv().ok();
+
     // initialize tracing
     tracing_subscriber::fmt::init();
 
+    // start the server
     let listening_port = std::env::var("LISTENING_PORT").unwrap_or_else(|_| "3000".to_string());
     let listening_ip = std::env::var("LISTENING_IP").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let moodle_facade_url = format!("{}:{}", listening_ip, listening_port);
-    println!("Starting Moodle Facade on {}", moodle_facade_url);
-    //event!(Level::INFO, "Starting Moodle Facade on {}", moodle_facade_url);
+    let moodle_facade_url = format!("{listening_ip}:{listening_port}");
+    println!("Starting Moodle Facade on {moodle_facade_url}");
+    event!(Level::INFO, "Starting Moodle Facade on {moodle_facade_url}");
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/cohorts", get(cohorts::get_cohorts))
-        .route("/cohorts/{id}", get(cohorts::get_cohorts_by_id))
-        .route("/users", get(users::get_users))
-        .route("/users/{field}/{value}", get(users::get_user_by_field))
-        .route("/users/{id}", get(users::get_user_by_id))
+        .nest("/users", users::get_routes())
+        .nest("/cohorts", cohorts::get_routes())
         ;
 
     let listener = tokio::net::TcpListener::bind(moodle_facade_url).await?;

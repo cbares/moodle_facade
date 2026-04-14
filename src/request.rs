@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use reqwest::{Certificate, StatusCode};
+use tracing::debug;
 use std::{fmt, env,};
 
 
@@ -38,7 +39,7 @@ impl fmt::Display for WebServiceMethod {
             WebServiceMethod::AddGroupMembers => "core_group_add_group_members",
             WebServiceMethod::GetCourses => "core_course_get_courses",
         };
-        write!(f, "{}", method_str)
+        write!(f, "{method_str}")
     }
 }
 
@@ -74,15 +75,13 @@ impl Request {
     /// Creates a new Request instance with the necessary certificate configuration.
     pub fn new() -> Self {
         let cert_path = env::var("CA_CERT_FILE").expect("CA_CERT_FILE must be set in .env file");
-        let cert_file = std::fs::read(&cert_path);
-        if cert_file.is_err() {
-            panic!("Failed to read certificate file at {}", cert_path);
-        }
+        let cert_file = std::fs::read(&cert_path)
+            .expect(format!("Failed to read certificate file at {cert_path}").as_str());
 
-        let certificate = Certificate::from_pem(cert_file.unwrap().as_ref()).unwrap();
+        let certificate = Certificate::from_pem(cert_file.as_ref()).expect("Failed to create certificate from PEM file");
         let certificates = [certificate,];
         let client = reqwest::Client::builder()
-            .tls_certs_only(certificates.into_iter())
+            .tls_certs_only(certificates)
             .build().unwrap();
         
         Self {
@@ -107,11 +106,12 @@ impl Request {
             ("wsfunction", &service.get_function_name()),
             ("moodlewsrestformat", &String::from("json")),
         ]);
-        match &self.query_string {
-            Some(query) => req = req.query(query),
-            None => (),
-        };
-        println!("Sent request: {:?}", req);
+
+        if let Some(query) = &self.query_string {
+            req = req.query(query);
+        }
+
+        debug!("Sent request: {:?}", req);
         let response = req.send().await;
         if response.is_err() {
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
@@ -121,7 +121,7 @@ impl Request {
         if text.is_err() {
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
-        println!("Received response from Moodle: {}", text.as_ref().unwrap());
+        debug!("Received response from Moodle: {}", text.as_ref().unwrap());
         Ok(text.unwrap())
     }
 }

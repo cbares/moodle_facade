@@ -1,7 +1,14 @@
 use crate::request::{Request, Moodlefunctions};
-use axum::{Json, extract::Path, http::StatusCode};
+use axum::{Json, Router, extract::Path, http::StatusCode, routing::get};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
+
+pub fn get_routes() -> Router {
+    Router::new()
+        .route("/", get(get_cohorts))
+        .route("/{id}", get(get_cohorts_by_id))
+}
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -35,7 +42,7 @@ impl fmt::Display for CohortsMethod {
         let method_str = match self {
             CohortsMethod::GetCohorts => "core_cohort_get_cohorts",
         };
-        write!(f, "{}", method_str)
+        write!(f, "{method_str}")
     }
 }
 
@@ -51,8 +58,9 @@ pub async fn get_cohorts() -> (StatusCode, Json<Vec<Cohort>>) {
     
     let client = Request::new();
     let response = client.get(CohortsMethod::GetCohorts).await;
-    if response.is_err() {
-        return (response.unwrap_err(), Json(vec![]));
+
+    if let Err(status_code) = response {
+        return (status_code, Json(vec![]));
     }
 
     let text = response.unwrap();
@@ -70,9 +78,10 @@ pub async fn get_cohorts_by_id(Path(id): Path<u64>) -> (StatusCode, Json<Vec<Coh
         ("cohortids[0]".to_string(), id.to_string())
         ];
     client.add_query_string(&data_string);
+
     let response = client.get(CohortsMethod::GetCohorts).await;
-    if response.is_err() {
-        return (response.unwrap_err(), Json(vec![]));
+    if let Err(status_code) = response {
+        return (status_code, Json(vec![]));
     }
 
     let text = response.unwrap();

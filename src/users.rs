@@ -1,9 +1,16 @@
 use crate::request::{Moodlefunctions, Request};
-use axum::{Json, extract::Path, http::StatusCode};
+use axum::{Json, Router, extract::Path, http::StatusCode, routing::get};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt;
 
+
+pub fn get_routes() -> Router {
+    Router::new()
+        .route("/", get(get_users))
+        .route("/{field}/{value}", get(get_user_by_field))
+        .route("/{id}", get(get_user_by_id))
+}
 
 
 /* Extracted from Moodle documentation for core_user_get_users function: 
@@ -137,7 +144,7 @@ impl fmt::Display for UsersMethod {
             UsersMethod::UpdateUsers => "core_user_update_users",
             UsersMethod::DeleteUsers => "core_user_delete_users",
         };
-        write!(f, "{}", method_str)
+        write!(f, "{method_str}")
     }
 }
 
@@ -167,7 +174,7 @@ pub async fn get_users() -> (StatusCode, Json<Vec<User>>) {
     match users_response {
         Ok(users) => (StatusCode::OK, Json(users.users)),
         Err(err) => {
-            eprintln!("Failed to deserialize response from Moodle: {}", err);
+            eprintln!("Failed to deserialize response from Moodle: {err}");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![]))
         }
     }
@@ -191,9 +198,9 @@ pub async fn get_user_by_field(Path((field, value)): Path<(String, String)>) -> 
     client.add_query_string(&data_string);
 
     let response = client.get(UsersMethod::GetUserByField).await;
-    if response.is_err() {
-        return (response.unwrap_err(), Json(vec![]));
-        }
+    if let Err(status_code) = response {
+        return (status_code, Json(vec![]));
+    }
 
     let text = response.unwrap();
     if text == "[]" {
@@ -207,7 +214,7 @@ pub async fn get_user_by_field(Path((field, value)): Path<(String, String)>) -> 
             (StatusCode::OK, Json(user))
         },
         Err(err) => {
-            eprintln!("Failed to deserialize response from Moodle: {}", err);
+            eprintln!("Failed to deserialize response from Moodle: {err}");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![]))
         }
     }
