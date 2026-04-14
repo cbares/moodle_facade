@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     let app = Router::new()
         .route("/", get(root))
         .route("/cohorts", get(cohorts::get_cohorts))
+        .route("/cohorts/{id}", get(cohorts::get_cohorts_by_id))
         .route("/users", get(users::get_users))
         .route("/users/{field}/{value}", get(users::get_user_by_field))
         .route("/users/{id}", get(users::get_user_by_id))

@@ -37,7 +37,6 @@ impl fmt::Display for WebServiceMethod {
             WebServiceMethod::GetCourseGroups => "core_group_get_course_groups",
             WebServiceMethod::AddGroupMembers => "core_group_add_group_members",
             WebServiceMethod::GetCourses => "core_course_get_courses",
-            _ => unreachable!(),
         };
         write!(f, "{}", method_str)
     }

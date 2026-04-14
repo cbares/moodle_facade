@@ -50,4 +50,12 @@ To run the REST API Façade for Moodle, follow these steps :
 cargo run
 ```
 
-1. The API will be available at the configured IP address and port, and you can start making requests to the endpoints.
+4. The API will be available at the configured IP address and port, and you can start making requests to the endpoints.
+
+
+# TODO:
+
+- [ ] Implement additional endpoints for other Moodle functionalities (e.g., course management, group management).
+- [ ] Remove list return for endpoints that return a single item (e.g., `GET /users/{id}` should return a single user instead of a list).
+- [ ] Add more comprehensive error handling and logging.
+- [ ] Implement Token proxying to allow clients to use their own tokens for authentication with the Moodle API.
